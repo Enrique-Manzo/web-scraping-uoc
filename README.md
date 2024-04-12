@@ -10,8 +10,13 @@ Extracción de los datos varios de la página web drugs.com sobre los nuevos med
 Los datos están guardados en formato CSV con los siguientes campos de interés:
 
 Nombre del medicamento: Identificación única del producto farmacéutico.
+
 Principio activo: Compuesto responsable del efecto terapéutico.
+
 Forma farmacéutica: Presentación del medicamento (comprimido, cápsula, jarabe, etc.).
+
 Año de aprobación: Fecha en que la FDA aprobó el medicamento.
+
 Empresa solicitante: Laboratorio o compañía farmacéutica responsable de la solicitud de aprobación.
+
 Indicación terapéutica: Enfermedad o condición que el medicamento trata.
