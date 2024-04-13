@@ -1,7 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import re
 
 
 class DrugsScraper:
@@ -208,6 +207,7 @@ class DrugsScraper:
         return
 
     def save_to_csv(self, file_name: str = 'drugs_data.csv'):
+        dataset_destination = "dataset/"+file_name
         """Saves the data to a CSV file"""
-        self.data.to_csv(file_name, index=False)
+        self.data.to_csv(dataset_destination, index=False)
 
