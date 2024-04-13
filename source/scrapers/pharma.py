@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
+# Clase principal del scraper
+
 
 class DrugsScraper:
     def __init__(self, base_url='https://www.drugs.com'):
@@ -9,13 +11,14 @@ class DrugsScraper:
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
         }
+        # Guarda en memoria un dataframe de pandas, que es fácil de trabajar y eficiente
         self.data = pd.DataFrame(columns=['name', 'molecule', 'dosage_form', 'date_of_approval', 'company', 'treatment_for', 'url'])
 
     def __get_html(self, url):
-        """Private method to fetch HTML content of a given URL"""
+        """Método privado para hacer el pedido al servidor y traer el HTML"""
         try:
             response = requests.get(url, headers=self.headers)
-            response.raise_for_status()  # raise exception for bad responses
+            response.raise_for_status()  # Exepción en caso de respuesta de error
             return response.text
         except requests.HTTPError as http_err:
             print(f'HTTP error occurred: {http_err}')
@@ -26,9 +29,11 @@ class DrugsScraper:
     def show_data(self):
         print(self.data)
 
+    # Scraping básico - solamente los datos básicos de los fármacos
     def scrape_drugs_by_year(self, years: list, limit: int = None) -> None:
         for year in years:
-            """Scrapes drugs released in a specific year from drugs.com"""
+            """Genera datos básicos sobre los fármacos en drugs.com"""
+
             url = f'{self.base_url}/newdrugs-archive/{year}.html'
             html = self.__get_html(url)
             if html:
@@ -73,7 +78,7 @@ class DrugsScraper:
                         treatment_for = ""
                     date_of_approval = drug.find('b', string='Date of Approval:').next_sibling.strip()
 
-                    # Escribir los datos en el archivo CSV
+                    # Generamos diccionario para agregarlo a la lista que será nuestro nuevo dataframe
                     new_row = {
                             'name': name,
                             'molecule': drug_molecule,
@@ -86,14 +91,8 @@ class DrugsScraper:
                     new_df = pd.DataFrame([new_row])
                     self.data = pd.concat([self.data, new_df], ignore_index=True)
 
-    def get_newest_drugs(self, limit=None):
-        """Fetches the newest drugs listed on drugs.com for the current year"""
-        pass
 
-    def get_related_drugs(self, drug_name, limit=None):
-        """Fetches drugs related to a specified drug name"""
-        pass
-
+    # Permite extraer datos más específicos
     def fetch_specifics(self):
         """
         Agrega los campos "drug_molecule_url", "drug_class", "image", "related_drugs", "rating",
@@ -104,7 +103,8 @@ class DrugsScraper:
         url_list = self.data['url']
         specifics = []
 
-        if len(url_list) < 0:
+        # Se asegura de que haya datos en el dataframe
+        if len(url_list) == 0:
             print("You must first call the method scrape_drugs_by_year to fetch the basic data.")
             return
 
@@ -113,17 +113,17 @@ class DrugsScraper:
             if html:
                 soup = BeautifulSoup(html, 'html.parser')
 
-                # Find the paragraph with class "drug-subtitle"
+                # Encontrar el párrafo con la cse "drug-subtitle"
                 drug_info = soup.find('p', class_='drug-subtitle')
 
                 molecule_url = ""
                 drug_class = ""
-                # Check if the element was found
+
                 if drug_info:
-                    # Extract and print the dosage form
-                    # The dosage form text is assumed to directly follow the <b>Dosage form:</b> element
+                    # Extrae el dosage form
                     links = drug_info.find_all('a')
 
+                    # Puede ser que no existan algunos elementos, aunque esto es raro. En ese caso gestionamos el error
                     try:
                         molecule_url = "https://www.drugs.com" + links[0]['href']
                     except IndexError:
@@ -134,35 +134,34 @@ class DrugsScraper:
                     except IndexError:
                         drug_class = None
 
+                # Gestión de contenido multimedia
                 image_container = soup.find('div', class_='drugImageHolder')
 
                 image = ""
 
                 if image_container:
-                    # Find the 'img' element within the container
                     image = image_container.find('img')['src']
 
-                # Find the 'blockquote' tag with id 'related-drugs'
+                # Encontramos fármacos relacionados
                 related_drugs_block = soup.find('blockquote', id='related-drugs')
 
-                # Initialize a list to store drug names and their links
+                # Listado de fármacos relacionados
                 related_drugs_list = []
 
-                # Check if the block was found
                 if related_drugs_block:
-                    # Find all 'a' tags within the blockquote
                     drug_links = related_drugs_block.find_all('a')
 
-                    # Extract the drug names and links
+                    # Extraemos los nombres de los links
                     for link in drug_links:
                         related_drugs_list.append(link.text)
-                # Join all drug names into a single string separated by commas
+                # Finalmente se guarda como un string
                 related_drugs = ', '.join(related_drugs_list)
 
+                # Buscamos información sobre los ratings y reviews
                 rating_element = soup.select_one('.ddc-rating-summary div b')
                 reviews_element = soup.select_one('.ddc-rating-summary em a')
 
-                # Check if elements exist before trying to access properties or methods
+                # Vemos si hay reviews - 50/50 que hay, por eso no usamos un error handling
                 rating = rating_element.text if rating_element else None
                 if reviews_element:
                     reviews = reviews_element.text.split(" ")[0]
@@ -171,6 +170,7 @@ class DrugsScraper:
                     reviews = None
                     reviews_url = None
 
+                # Diccionario
                 specific_dic = {
                     "molecule_url": molecule_url,
                     "drug_class": drug_class,
@@ -182,6 +182,7 @@ class DrugsScraper:
                     "url": url
                 }
 
+                # Buscamos detalles como información sobre lactancia y embarazo. Puede variar el dato
                 details = soup.select(".ddc-status-info-item")
 
                 if details:
@@ -190,6 +191,7 @@ class DrugsScraper:
                         value = detail.select_one(".ddc-display-block").get_text()
                         specific_dic[label] = value
 
+                # Buscamos alertas - también pueden variar
                 warnings = soup.select(".ddc-status-info .ddc-accordion-section")
 
                 if warnings:
@@ -200,14 +202,68 @@ class DrugsScraper:
 
                 specifics.append(specific_dic)
 
+        # Creamos el dataset con los datos específicos solamente
         specifics_df = pd.DataFrame(specifics)
 
+        # Hacemos un join con el dataset general
         self.data = pd.merge(self.data, specifics_df, on='url', how='outer')
 
         return
 
+    # Busca específicamente datos sobre reviews
+    def get_review_data(self):
+        """
+        Busca datos sobre reseñas. Si el conjunto de datos específicos arrojó datos con reseñas, puede
+        ser interesante recabar esos datos. Agrega al dataset: "most_reviewed_condition",
+        "most_reviewed_rating", "n_reviews"
+        """
+
+        url_list = self.data['reviews_url']
+        reviews = []
+
+        # Verificamos que tengamos las URLs de las reseñas
+        if len(url_list) == 0:
+            print("You must first call the method fetch_specifics to fetch the detailed data.")
+            return
+
+        for url in url_list:
+            if url is None:
+                continue
+            html = self.__get_html(url)
+            if html:
+                soup = BeautifulSoup(html, 'html.parser')
+
+                # Tomamos información sobre la tabla con los trastornos
+                conditions_table = soup.select(".ddc-table-sortable tr")
+
+                most_reviewed = conditions_table[1]
+
+                # Generamos las tres variables que nos interesan
+                condition = most_reviewed.select_one("th").text
+                most_reviewed_rating = most_reviewed.select_one(".ddc-text-right").text
+                n_reviews = most_reviewed.select_one("a").text.split(" ")[0]
+
+                reviews_dict = {
+                    "most_reviewed_condition": condition,
+                    "most_reviewed_rating": most_reviewed_rating,
+                    "n_reviews": n_reviews,
+                    "url": url
+                }
+
+                reviews.append(reviews_dict)
+
+        reviews_df = pd.DataFrame(reviews)
+
+        # Agregamos los datos al dataset
+        self.data = pd.merge(self.data, reviews_df, left_on='reviews_url', right_on="url", how='outer')
+
+        return
+
+
     def save_to_csv(self, file_name: str = 'drugs_data.csv'):
-        dataset_destination = "dataset/"+file_name
         """Saves the data to a CSV file"""
+
+        # Como se indica en el enunciado, los datos se guardan en la carpeta "dataset"
+        dataset_destination = "dataset/" + file_name
         self.data.to_csv(dataset_destination, index=False)
 
