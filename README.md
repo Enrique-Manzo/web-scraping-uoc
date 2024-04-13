@@ -111,3 +111,17 @@ scraper.get_review_data()
 scraper.save_to_csv(file_name='datos_medicamentos_2018_2019.csv')
 ```
 
+## Archivos del repositorio
+
+`pharma.py`: archivo que contiene a la clase `DrugScraper` y sus métodos.
+`main.py`: archivo de ejemplo de uso.
+
+## Integrantes del grupo
+
+- Wenxi Ye
+- Enrique Manzo
+
+## DOI de Zenodo
+
+
+
