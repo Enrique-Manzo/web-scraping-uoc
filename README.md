@@ -33,12 +33,12 @@ Indicación terapéutica: Enfermedad o condición que el medicamento trata.
 
 Debido a que el scraping puede hacer un uso intensivo del servidor y del dispositivo del cliente, se ha modularizado el comportamiento del scraper en diferentes métodos de la clase. Cada método recopila datos de manera incremental (no sobreescribe los anteriores, sino que aumenta el dataset). Esto es debido a que se deben consultar, en ciertos casos, varias páginas para obtener información detallada. La modularización permite reducir este coste si así se lo desea. Por la misma razón, la función básica tiene un límite que se le puede agregar al scrapper.
 
-`scrape_drugs_by_year`: este método recibe un una lista con los años de los que se quiere recopilar datos. Devuelve la serie de datos básicos.
-`fetch_specifics`: este método agrega al dataframe la serie de datos específicos. Obligatoriamente se debe llamar después de scrape_drugs_by_year y sirve para incrementar los datos.
-`get_review_data`: es el último método de scraping incremental. Permite revisar todas las URLs con reseñas y agregar datos de las reseñas al dataframe
-`show_data`: imprime el dataframe por consola. Es útil si se quiere ver el estado del dataframe
-`get_dataframe`: devuelve un dataframe de pandas. Es útil si se quieren manipular los datos antes de guardarlos
-`save_to_csv`: guarda los datos en un archivo CSV en el directorio "dataset". Recibe un string como parámetro, el cual debe contener el nombre del archivo y la extensión "csv"
+`scrape_drugs_by_year`: este método recibe un una lista con los años de los que se quiere recopilar datos. Devuelve la serie de datos básicos.  
+`fetch_specifics`: este método agrega al dataframe la serie de datos específicos. Obligatoriamente se debe llamar después de scrape_drugs_by_year y sirve para incrementar los datos.  
+`get_review_data`: es el último método de scraping incremental. Permite revisar todas las URLs con reseñas y agregar datos de las reseñas al datafram.  
+`show_data`: imprime el dataframe por consola. Es útil si se quiere ver el estado del dataframe.  
+`get_dataframe`: devuelve un dataframe de pandas. Es útil si se quieren manipular los datos antes de guardarlos.  
+`save_to_csv`: guarda los datos en un archivo CSV en el directorio "dataset". Recibe un string como parámetro, el cual debe contener el nombre del archivo y la extensión "csv".  
 
 ## USO
 
@@ -60,8 +60,8 @@ Después de raspar la información básica, obtén datos detallados del medicame
 scraper.scrape_drugs_by_year(years=[2020, 2021], limit=50)
 ```
 
-`years`: Lista de años para raspar.
-`limit`: Número máximo de medicamentos para raspar por año (opcional).
+`years`: Lista de años para raspar.  
+`limit`: Número máximo de medicamentos para raspar por año (opcional).  
 
 ### Scraping de la información detallada
 
