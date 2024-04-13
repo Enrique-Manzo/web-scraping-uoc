@@ -236,21 +236,26 @@ class DrugsScraper:
                 # Tomamos información sobre la tabla con los trastornos
                 conditions_table = soup.select(".ddc-table-sortable tr")
 
-                most_reviewed = conditions_table[1]
+                # Verificamos que existan suficientes elementos en conditions_table antes de acceder a ellos
+                if len(conditions_table) > 1:
+                    most_reviewed = conditions_table[1]
 
-                # Generamos las tres variables que nos interesan
-                condition = most_reviewed.select_one("th").text
-                most_reviewed_rating = most_reviewed.select_one(".ddc-text-right").text
-                n_reviews = most_reviewed.select_one("a").text.split(" ")[0]
+                    # Generamos las tres variables que nos interesan
+                    condition = most_reviewed.select_one("th").text
+                    most_reviewed_rating = most_reviewed.select_one(".ddc-text-right").text
+                    n_reviews = most_reviewed.select_one("a").text.split(" ")[0]
 
-                reviews_dict = {
-                    "most_reviewed_condition": condition,
-                    "most_reviewed_rating": most_reviewed_rating,
-                    "n_reviews": n_reviews,
-                    "url": url
-                }
+                    reviews_dict = {
+                        "most_reviewed_condition": condition,
+                        "most_reviewed_rating": most_reviewed_rating,
+                        "n_reviews": n_reviews,
+                        "url": url
+                    }
 
-                reviews.append(reviews_dict)
+                    reviews.append(reviews_dict)
+                else:
+                    print("No hay suficientes elementos en conditions_table para acceder a la información.")
+
 
         reviews_df = pd.DataFrame(reviews)
 
