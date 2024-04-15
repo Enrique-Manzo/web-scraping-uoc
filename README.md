@@ -122,7 +122,7 @@ scraper.save_to_csv(file_name='datos_medicamentos_2018_2019.csv')
 - Enrique Manzo
 
 ## DOI de Zenodo
-- 10.5281/zenodo.10973817
-- link: https://zenodo.org/records/10973818
+- 10.5281/zenodo.10974884
+- link: https://zenodo.org/records/10974884
 
 
