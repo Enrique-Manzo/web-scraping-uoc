@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import re
 
 # Clase principal del scraper
 
@@ -29,6 +30,9 @@ class DrugsScraper:
     def show_data(self):
         print(self.data)
 
+    def get_dataframe(self):
+        return self.data
+
     # Scraping básico - solamente los datos básicos de los fármacos
     def scrape_drugs_by_year(self, years: list, limit: int = None) -> None:
         for year in years:
@@ -50,47 +54,50 @@ class DrugsScraper:
                 for drug in drugs:
                     name = drug.find('a').get_text(strip=True)
                     url = "https://www.drugs.com"+drug.find('a')['href']
-                    title_text = drug.find('h3', class_='ddc-media-title').get_text(strip=True)
 
-                    part_1 = title_text.split("(")[1]
+                    if not (self.data['url'].isin([url]).any()):
 
-                    part_2 = part_1.split(")")
+                        title_text = drug.find('h3', class_='ddc-media-title').get_text(strip=True)
 
-                    drug_molecule = ""
-                    dosage_form = ""
+                        part_1 = title_text.split("(")[1]
 
-                    if len(part_2) > 1:
-                        drug_molecule = part_2[0].strip()
-                        dosage_form = part_2[1].strip()
+                        part_2 = part_1.split(")")
 
-                    # Extraer otros detalles
-                    company = drug.find('b', string='Company:')
-                    if company:
-                        company = company.next_sibling.strip()
-                    else:
-                        company = ""
+                        drug_molecule = ""
+                        dosage_form = ""
 
-                    # Verificar si 'Treatment for:' está presente antes de intentar extraerlo
-                    treatment_element = drug.find('b', string='Treatment for:')
-                    if treatment_element:
-                        treatment_for = treatment_element.next_sibling.strip()
-                    else:
-                        treatment_for = ""
-                    date_of_approval = drug.find('b', string='Date of Approval:').next_sibling.strip()
+                        if len(part_2) > 1:
+                            drug_molecule = part_2[0].strip()
+                            dosage_form = part_2[1].strip()
 
-                    # Generamos diccionario para agregarlo a la lista que será nuestro nuevo dataframe
-                    new_row = {
-                            'name': name,
-                            'molecule': drug_molecule,
-                            'dosage_form': dosage_form,
-                            'date_of_approval': date_of_approval,
-                            'company': company,
-                            'treatment_for': treatment_for,
-                            'url': url
-                        }
-                    new_df = pd.DataFrame([new_row])
-                    self.data = pd.concat([self.data, new_df], ignore_index=True)
+                        # Extraer otros detalles
+                        company = drug.find('b', string='Company:')
+                        if company:
+                            company = company.next_sibling.strip()
+                        else:
+                            company = ""
 
+                        # Verificar si 'Treatment for:' está presente antes de intentar extraerlo
+                        treatment_element = drug.find('b', string='Treatment for:')
+                        if treatment_element:
+                            treatment_for = treatment_element.next_sibling.strip()
+                        else:
+                            treatment_for = ""
+                        date_of_approval = drug.find('b', string='Date of Approval:').next_sibling.strip()
+
+                        # Generamos diccionario para agregarlo a la lista que será nuestro nuevo dataframe
+                        new_row = {
+                                'name': name,
+                                'molecule': drug_molecule,
+                                'dosage_form': dosage_form,
+                                'date_of_approval': date_of_approval,
+                                'company': company,
+                                'treatment_for': treatment_for,
+                                'url': url
+                            }
+                        print(new_row)
+                        new_df = pd.DataFrame([new_row])
+                        self.data = pd.concat([self.data, new_df], ignore_index=True)
 
     # Permite extraer datos más específicos
     def fetch_specifics(self):
@@ -170,6 +177,16 @@ class DrugsScraper:
                     reviews = None
                     reviews_url = None
 
+                # Devuelve la URL de los efectos secundarios
+                page_links = soup.select(".ddc-related-link a")
+
+                side_effect_link = ""
+
+                if len(page_links) > 0:
+                    side_effects_link_list = [link for link in page_links if "side effects" in link.text]
+                    if len(side_effects_link_list) > 0:
+                        side_effect_link = "https://www.drugs.com" + side_effects_link_list[0]['href']
+
                 # Diccionario
                 specific_dic = {
                     "molecule_url": molecule_url,
@@ -179,8 +196,11 @@ class DrugsScraper:
                     "rating": rating,
                     "reviews": reviews,
                     "reviews_url": reviews_url,
+                    "side_effects_url": side_effect_link,
                     "url": url
                 }
+
+                print(specific_dic)
 
                 # Buscamos detalles como información sobre lactancia y embarazo. Puede variar el dato
                 details = soup.select(".ddc-status-info-item")
@@ -236,29 +256,122 @@ class DrugsScraper:
                 # Tomamos información sobre la tabla con los trastornos
                 conditions_table = soup.select(".ddc-table-sortable tr")
 
-                most_reviewed = conditions_table[1]
+                if len(conditions_table) >= 2:
+                    most_reviewed = conditions_table[1]
 
-                # Generamos las tres variables que nos interesan
-                condition = most_reviewed.select_one("th").text
-                most_reviewed_rating = most_reviewed.select_one(".ddc-text-right").text
-                n_reviews = most_reviewed.select_one("a").text.split(" ")[0]
+                    # Generamos las tres variables que nos interesan
+                    condition = most_reviewed.select_one("th").text
+                    most_reviewed_rating = most_reviewed.select_one(".ddc-text-right").text
+                    n_reviews = most_reviewed.select_one("a").text.split(" ")[0]
 
-                reviews_dict = {
-                    "most_reviewed_condition": condition,
-                    "most_reviewed_rating": most_reviewed_rating,
-                    "n_reviews": n_reviews,
-                    "url": url
-                }
-
-                reviews.append(reviews_dict)
+                    reviews_dict = {
+                        "most_reviewed_condition": condition,
+                        "most_reviewed_rating": most_reviewed_rating,
+                        "n_reviews": n_reviews,
+                        "reviews_url": url
+                    }
+                    print(reviews_dict)
+                    reviews.append(reviews_dict)
 
         reviews_df = pd.DataFrame(reviews)
 
         # Agregamos los datos al dataset
-        self.data = pd.merge(self.data, reviews_df, left_on='reviews_url', right_on="url", how='outer')
+        self.data = pd.merge(self.data, reviews_df, on="reviews_url", how='outer')
 
         return
 
+    def get_side_effects(self):
+        """
+        Calcula el conteo de efectos secundarios según la página específica a este efecto.
+        """
+
+        url_list = self.data['side_effects_url']
+        effects = []
+
+        # Verificamos que tengamos las URLs de las reseñas
+        if len(url_list) == 0:
+            print("You must first call the method fetch_specifics to fetch the detailed data.")
+            return
+
+        for url in url_list:
+            if len(url) == 0:
+                continue
+            html = self.__get_html(url)
+            if html:
+                soup = BeautifulSoup(html, 'html.parser')
+
+                lists = soup.select(".ddc-main-content ul")
+
+                number_side_effects = 0
+                if len(lists) >= 2:
+
+                    number_side_effects = len(lists[1].find_all('li'))
+
+                effects_dict = {
+                    "number_side_effects": number_side_effects,
+                    "side_effects_url": url
+                }
+                print(effects_dict)
+                effects.append(effects_dict)
+
+        side_effects_df = pd.DataFrame(effects)
+
+        # Agregamos los datos al dataset
+        self.data = pd.merge(self.data, side_effects_df, on='side_effects_url', how='outer')
+
+        return
+
+    def get_consumer_price(self):
+        """
+        Agrega al dataset el precio comercial al que el paciente puede comprar el fármaco.
+        """
+
+        url_list = self.data['url']
+        prices = []
+
+        # Verificamos que tengamos las URLs de las reseñas
+        if len(url_list) == 0:
+            print("You must first call the method fetch_specifics to fetch the detailed data.")
+            return
+
+        for url in url_list:
+            if len(url) == 0:
+                continue
+
+            # Regex to extract the drug name
+            pattern = re.compile(r'/([^/]+)\.html$')
+            match = pattern.search(url)
+
+            prices_dict = {
+                "price": "not found",
+                "shop_dosis": "not found",
+                "prices_url": "https://www.drugs.com/price-guide/" + match.group(1),
+                "url": url
+            }
+
+            html = self.__get_html("https://www.drugs.com/price-guide/" + match.group(1))
+            if html:
+                soup = BeautifulSoup(html, 'html.parser')
+
+                h1_text = soup.select("h1")[0].text
+
+                if h1_text == 'Page Not Found':
+                    continue
+
+                items = soup.select(".ddc-price-guide-accordion-header-info b")
+                if len(items) > 1:
+                    prices_dict['shop_dosis'] = items[0].text
+                    prices_dict['price'] = items[1].text
+
+                print(prices_dict)
+                prices.append(prices_dict)
+
+        prices_df = pd.DataFrame(prices)
+
+        # Agregamos los datos al dataset
+        self.data = pd.merge(self.data, prices_df, on="url", how='outer')
+
+        return
 
     def save_to_csv(self, file_name: str = 'drugs_data.csv'):
         """Saves the data to a CSV file"""
